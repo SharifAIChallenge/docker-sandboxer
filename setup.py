@@ -1,9 +1,5 @@
 from setuptools import setup, find_packages
 from docker_sandboxer import VERSION
-from pip.req import parse_requirements
-
-install_reqs = parse_requirements("requirements.txt")
-reqs = [str(ir.req) for ir in install_reqs]
 
 setup(name='docker-sandboxer',
       version=VERSION,
@@ -13,5 +9,10 @@ setup(name='docker-sandboxer',
       author_email='sharif.aichallenge@gmail.com',
       license='BSD',
       packages=find_packages(),
-      install_reqs=reqs,
+      install_requires=[
+            "redis >= 2.10.5, < 3",
+            "PyYAML >=3.11, < 4",
+            "Jinja2 >= 2.8, < 3",
+            "docker-compose >= 1.5.2, < 2"
+      ],
       zip_safe=False)
