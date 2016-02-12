@@ -11,6 +11,7 @@ class Sandbox(object):
         return {
             "cpu": Sandbox._validate_cpu,
             "memory": Sandbox._validate_int,
+            "swap": Sandbox._validate_int,
         }
 
     @staticmethod
@@ -33,15 +34,27 @@ class Sandbox(object):
 
     def __init__(self, **limits):
         self.limits = {}
-        self.set_limits(**limits)
+        self.update_limits(
+            privileged=False,
+            restart="no",
+            memory=1024,
+            swap=0,
+            cpu=[1024, ],
+            open_files_hard_limit=20,
+            open_files_soft_limit=20,
+            processes_limit=20,
+        ) # Default limits
+        self.update_limits(**limits)
 
-    def set_limits(self, **limits):
+    def update_limits(self, **limits):
         for limit_name, limit_value in limits.items():
-            self._set_limit(limit_name, limit_value)
+            self._update_limit(limit_name, limit_value)
 
-    def _set_limit(self, limit_name, limit_desc):
+    def _update_limit(self, limit_name, limit_desc):
         if not isinstance(limit_name, str):
             raise AssertionError("Limit name must be a string")
+        if limit_desc is None:
+            self.limits.pop(limit_name, None)
         validator = self._limit_validator.get(limit_name, None)
         if validator is not None:
             self.limits[limit_name] = validator(limit_desc)
@@ -54,10 +67,38 @@ class Sandbox(object):
     def get_all_limits(self):
         return self.limits
 
+    def get_docker_limits(self):
+        limits = self.limits.copy()
+
+        limits.pop("cpu", None)
+
+        if "memory" in limits or "swap" in limits:
+            memory = limits.pop("memory", 0)
+            swap = limits.pop("swap", 0)
+            limits["mem_limit"] = memory
+            limits["memswap_limit"] = memory + swap
+
+        if "processes_limit" in limits:
+            if "ulimits" not in limits:
+                limits["ulimits"] = {}
+            limits["ulimits"]["nproc"] = limits.pop("processes_limit")
+        if "open_files_soft_limit" in limits or "open_files_hard_limit" in limits:
+            if "ulimits" not in limits:
+                limits["ulimits"] = {}
+            limits["ulimits"]["nofile"] = {}
+            if "open_files_soft_limit" in limits:
+                limits["ulimits"]["nofile"]["soft"] = limits.pop("open_files_soft_limit")
+            if "open_files_hard_limit" in limits:
+                limits["ulimits"]["nofile"]["hard"] = limits.pop("open_files_har_limit")
+
+
+    def copy(self):
+        return Sandbox(**self.limits)
+
 
 class Parser(object):
 
-    def __init__(self, cpu_scheduler, yml_template_base, yaml_storage_folder=None):
+    def __init__(self, cpu_scheduler, yml_template_base, yaml_storage_folder):
         self.cpu_scheduler = cpu_scheduler
         self.jinja_environment = Environment(loader=FileSystemLoader(yml_template_base, followlinks=True))
 
@@ -148,8 +189,8 @@ class Parser(object):
                 id_shares[cpu_limits_ids[i]].append(cpu_shares[i])
             for sandbox_id, sandbox in sandboxes.items():
                 sandbox_data[sandbox_id] = sandbox.get_all_limits()
+
                 if sandbox_id in id_shares:
-                    sandbox_data[sandbox_id].pop("cpu")
                     sandbox_data[sandbox_id]["cpuset"] = ",".join([str(share_id) for share_id in id_shares[sandbox_id]])
 
             Parser._find_and_replace_sandbox_ids(compose_data, sandbox_data)
