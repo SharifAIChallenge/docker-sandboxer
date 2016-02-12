@@ -4,6 +4,9 @@ You may find a sample usage below:
 
 **test.py**
 ```
+from docker_sandboxer.sandbox import Sandbox, Parser
+from docker_sandboxer.scheduler import CPUScheduler
+
 sandbox = Sandbox(memory=100000000)
 sandbox.update_limits(cpu=[1024, 512], swap=0, )
 
