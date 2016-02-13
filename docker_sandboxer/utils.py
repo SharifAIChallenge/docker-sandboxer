@@ -1,7 +1,7 @@
 from compose.cli.main import TopLevelCommand
 
 
-def run_compose_with_file(project_name, yml_file, manager_services):
+def run_compose_with_file(project_name, yml_file, manager_services, timeout):
     """
         :param project_name: A name used to identify containers of this project
         :param yml_file; Path of YAML file which docker-compose is going to be run with.

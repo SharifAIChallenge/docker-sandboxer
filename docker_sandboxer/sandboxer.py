@@ -120,13 +120,12 @@ class Parser(object):
                         dictionary.pop(sandbox_id)
                         dictionary.update(sandbox_dict)
 
-    def create_yml_and_run(self, uid, yml_template_name, context):
+    def create_yml_and_run(self, uid, yml_template_name, context, timeout=None):
         """
         :param uid: a unique id
-        :param cpu_scheduler: an instance of CPUScheduler used for allocating CPU shares
-        :param yml_template_dir: Directory of YAML template
         :param yml_template_name: YAML template name
         :param context: context used to parse the template.
+        :param timeout: Time to wait for the containers to stop. The containers will be killed
 
         Compiles yml_template and runs docker-compose with it.
         You can add another key in some of your services called manager,
@@ -202,7 +201,7 @@ class Parser(object):
             with open(yml_file_name, 'w') as yml_file:
                 yml_file.write(yaml.dump(compose_data))
                 yml_file.close()
-                run_compose_with_file(uid, yml_file_name, managers)
+                run_compose_with_file(uid, yml_file_name, managers, timeout)
 
         finally:
             self.cpu_scheduler.release_all_cpus(uid)
