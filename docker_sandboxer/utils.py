@@ -12,9 +12,8 @@ def run_compose_with_file(project_name, yml_file, manager_services, timeout):
     if not manager_services:
         manager_services = []
 
-    print(manager_services)
     command = TopLevelCommand()
-    project_description = ["-f", yml_file, "-p", project_name]
+    project_description = ["-f", [yml_file], "-p", project_name]
     # Start docker-compose as a daemon
     command.dispatch(project_description + ["up", "-d"], None)
     # Attach to manager container(s)' logs. Waits for manager container to stop.

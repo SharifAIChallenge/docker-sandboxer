@@ -37,7 +37,7 @@ class Sandbox(object):
         self.update_limits(
             privileged=False,
             restart="no",
-            memory=1024,
+            memory=1024 * 1024 * 1024,
             swap=0,
             cpu=[1024, ],
             open_files_hard_limit=20,
@@ -73,10 +73,11 @@ class Sandbox(object):
         limits.pop("cpu", None)
 
         if "memory" in limits or "swap" in limits:
-            memory = limits.pop("memory", 0)
+            memory = limits.pop("memory", 4 * 1024 * 1024)
             swap = limits.pop("swap", 0)
             limits["mem_limit"] = memory
             limits["memswap_limit"] = memory + swap
+
 
         if "processes_limit" in limits:
             if "ulimits" not in limits:
@@ -89,7 +90,8 @@ class Sandbox(object):
             if "open_files_soft_limit" in limits:
                 limits["ulimits"]["nofile"]["soft"] = limits.pop("open_files_soft_limit")
             if "open_files_hard_limit" in limits:
-                limits["ulimits"]["nofile"]["hard"] = limits.pop("open_files_har_limit")
+                limits["ulimits"]["nofile"]["hard"] = limits.pop("open_files_hard_limit")
+        return limits
 
 
     def copy(self):
@@ -187,7 +189,7 @@ class Parser(object):
             for i in range(len(cpu_limits)):
                 id_shares[cpu_limits_ids[i]].append(cpu_shares[i])
             for sandbox_id, sandbox in sandboxes.items():
-                sandbox_data[sandbox_id] = sandbox.get_all_limits()
+                sandbox_data[sandbox_id] = sandbox.get_docker_limits()
 
                 if sandbox_id in id_shares:
                     sandbox_data[sandbox_id]["cpuset"] = ",".join([str(share_id) for share_id in id_shares[sandbox_id]])
