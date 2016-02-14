@@ -1,5 +1,5 @@
-from scheduler import CPUScheduler
-from utils import run_compose_with_file
+from .scheduler import CPUScheduler
+from .utils import run_compose_with_file
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
