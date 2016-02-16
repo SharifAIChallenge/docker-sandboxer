@@ -201,7 +201,7 @@ class Parser(object):
             import os
             yml_file_name = os.path.abspath("%s/%s.yml" % (self.yaml_storage_folder, uid))
             with open(yml_file_name, 'w') as yml_file:
-                yml_file.write(yaml.dump(compose_data))
+                yml_file.write(yaml.dump(compose_data), default_flow_style=False)
                 yml_file.close()
                 run_compose_with_file(uid, yml_file_name, managers, timeout)
 
