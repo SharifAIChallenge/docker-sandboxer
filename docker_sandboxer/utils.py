@@ -10,12 +10,14 @@ def run_compose_with_file(project_name, yml_file, manager_services, timeout):
             self.project_description = project_description
             self.has_been_killed = False
             self.kill_lock = threading.Lock()
+            self.exception_on_kill = None
 
-        def kill(self):
+        def kill(self, exception_on_kill=None):
             self.kill_lock.acquire()
             if self.has_been_killed:
                 return None
             self.has_been_killed = True
+            self.exception_on_kill = exception_on_kill
             # Kill all running containers
             command.dispatch(self.project_description + ["kill"], None)
             # Remove containers(Cleaning up)
@@ -43,7 +45,7 @@ def run_compose_with_file(project_name, yml_file, manager_services, timeout):
 
     timer = None
     if timeout:
-        timer = threading.Timer(timeout, container_killer.kill)
+        timer = threading.Timer(timeout, container_killer.kill, kwargs={"exception_on_kill": TimeoutError()})
     try:
         if timeout:
             timer.start()
@@ -52,7 +54,8 @@ def run_compose_with_file(project_name, yml_file, manager_services, timeout):
         container_killer.kill()
         if timeout:
             timer.cancel()
-
+    if container_killer.exception_on_kill is not None:
+        raise container_killer.exception_on_kill
 
 
 

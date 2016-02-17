@@ -49,7 +49,7 @@ Then you can use the function `create_yml_and_run` to parse and run a template w
 * A unique identifier for these containers
 * Name of the template to be parsed
 * Dictionary used to parse this template
-* (This feature is not implemented yet) Time to wait for containers to exit in seconds. It kills the containers after this time. If not provided or None is given, no time limit is applied. 
+* Time to wait for containers to exit in seconds. It kills the containers after this time. If not provided or None is given, no time limit is applied.
 
 ## Example
 **test.py**
