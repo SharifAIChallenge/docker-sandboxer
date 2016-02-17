@@ -112,15 +112,38 @@ class Parser(object):
             pass
 
     @staticmethod
-    def _find_and_replace_sandbox_ids(dictionary, sandbox_data):
-                for key, value in dictionary.items():
-                    if isinstance(value, dict):
-                        Parser._find_and_replace_sandbox_ids(value, sandbox_data)
+    def _find_sandboxes_and_put_placeholders(context, prefix=""):
+        sandboxes = {}
+        if isinstance(context, list):
+            for idx in range(len(context)):
+                value = context[idx]
+                if isinstance(value, dict) or isinstance(value, list):
+                    sandboxes.update(Parser._find_sandboxes_and_put_placeholders(value, prefix + "%s." % str(idx)))
+        elif isinstance(context, dict):
+            for key, value in context.items():
+                if isinstance(value, Sandbox):
+                    sandbox_id = prefix + str(key)
+                    sandboxes[sandbox_id] = value
+                    context[key] = "%s: sandbox_placeholder" % sandbox_id
+                elif isinstance(value, dict) or isinstance(value, list):
+                    sandboxes.update(Parser._find_sandboxes_and_put_placeholders(value, prefix + "%s." % str(key)))
+        return sandboxes
 
-                for sandbox_id, sandbox_dict in sandbox_data.items():
-                    if sandbox_id in dictionary:
-                        dictionary.pop(sandbox_id)
-                        dictionary.update(sandbox_dict)
+    @staticmethod
+    def _find_and_replace_sandbox_ids(context, sandbox_data):
+        if isinstance(context, list):
+            for value in context:
+                if isinstance(value, dict) or isinstance(value, list):
+                    Parser._find_and_replace_sandbox_ids(value, sandbox_data)
+        elif isinstance(context, dict):
+            for key, value in context.items():
+                if isinstance(value, dict) or isinstance(value, list):
+                    Parser._find_and_replace_sandbox_ids(value, sandbox_data)
+
+            for sandbox_id, sandbox_dict in sandbox_data.items():
+                if sandbox_id in context:
+                    context.pop(sandbox_id)
+                    context.update(sandbox_dict)
 
     def create_yml_and_run(self, uid, yml_template_name, context, timeout=None):
         """
@@ -145,12 +168,7 @@ class Parser(object):
             raise AssertionError("make_manager is a reserved keyword")
         context[make_manager_keyword] = "manager: true"
 
-        sandboxes = {}
-
-        for key, value in context.items():
-            if isinstance(value, Sandbox):
-                sandboxes[key] = value
-                context[key] = "%s: sandbox_placeholder" % key
+        sandboxes = self._find_sandboxes_and_put_placeholders(context)
 
         template_string = self.jinja_environment.get_template(yml_template_name).render(context)
         compose_data = yaml.load(template_string)
@@ -181,7 +199,7 @@ class Parser(object):
                 cpu_limits += sandbox_cpu_limit
         try:
             cpu_shares = self.cpu_scheduler.acquire_cpu(uid, cpu_limits)
-            print(cpu_limits)
+
             id_shares = {}  # Each id is mapped to a list containing shares assigned to that id
             for cpu_limits_id in cpu_limits_ids:
                 id_shares[cpu_limits_id] = []
@@ -194,7 +212,7 @@ class Parser(object):
                 if sandbox_id in id_shares:
                     sandbox_data[sandbox_id]["cpuset"] = ",".join([str(share_id) for share_id in id_shares[sandbox_id]])
 
-            Parser._find_and_replace_sandbox_ids(compose_data, sandbox_data)
+            self._find_and_replace_sandbox_ids(compose_data, sandbox_data)
 
             # TODO: Memory should probably use the same approach as the CPU
             # TODO: i.e. we should wait until total requested memory is available and then divide it among the containers.
