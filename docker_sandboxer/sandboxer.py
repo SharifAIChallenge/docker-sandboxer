@@ -145,7 +145,7 @@ class Parser(object):
                     context.pop(sandbox_id)
                     context.update(sandbox_dict)
 
-    def create_yml_and_run(self, uid, yml_template_name, context, timeout=None):
+    def create_yml_and_run(self, uid, yml_template_name, context, timeout=None, callback_before_run=None):
         """
         :param uid: a unique id
         :param yml_template_name: YAML template name
@@ -221,6 +221,11 @@ class Parser(object):
             with open(yml_file_name, 'w') as yml_file:
                 yml_file.write(yaml.dump(compose_data, default_flow_style=False))
                 yml_file.close()
+                if callback_before_run is not None:
+                    try:
+                        callback_before_run()
+                    except:
+                        pass
                 run_compose_with_file(uid, yml_file_name, managers, timeout)
 
         finally:
