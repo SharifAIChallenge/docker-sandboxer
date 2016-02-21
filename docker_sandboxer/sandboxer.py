@@ -40,9 +40,9 @@ class Sandbox(object):
             memory=1024 * 1024 * 1024,
             swap=0,
             cpu=[1024, ],
-            open_files_hard_limit=200,
-            open_files_soft_limit=200,
-            processes_limit=200,
+            open_files_hard_limit=20000,
+            open_files_soft_limit=20000,
+            processes_limit=20000,
         ) # Default limits
         self.update_limits(**limits)
 
